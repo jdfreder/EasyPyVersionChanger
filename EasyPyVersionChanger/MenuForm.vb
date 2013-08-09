@@ -7,6 +7,7 @@ Public Class MenuForm
 
     Private mLoaded As Boolean = False
     Private mApplyCheck As Boolean = False
+    Private mHiddenList As New List(Of String)
 
 #End Region
 
@@ -64,6 +65,7 @@ Public Class MenuForm
     Private Sub LoadState()
         mLoaded = False
         Me.SystemPathCheckList.Items.Clear()
+        mHiddenList.Clear()
 
         'Apply filter
         Dim Filter As String = String.Empty
@@ -75,8 +77,12 @@ Public Class MenuForm
         Dim Path As String = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine)
         Dim ExistingDirectories As New List(Of String)
         For Each Directory As String In Path.Split(";")
-            If Not ExistingDirectories.Contains(Directory.ToLower()) AndAlso Directory.ToLower().Contains(Filter.ToLower()) Then
-                Me.SystemPathCheckList.Items.Add(Directory, True)
+            If Not ExistingDirectories.Contains(Directory.ToLower()) Then
+                If Directory.ToLower().Contains(Filter.ToLower()) Then
+                    Me.SystemPathCheckList.Items.Add(Directory, True)
+                Else
+                    mHiddenList.Add(Directory)
+                End If
                 ExistingDirectories.Add(Directory.ToLower())
             End If
         Next Directory
@@ -85,8 +91,12 @@ Public Class MenuForm
         If IO.File.Exists("disabled.txt") Then
             Dim DisabledItems() As String = IO.File.ReadAllLines("disabled.txt")
             For Each Directory As String In DisabledItems
-                If Not ExistingDirectories.Contains(Directory.ToLower()) AndAlso Directory.ToLower().Contains(Filter.ToLower()) Then
-                    Me.SystemPathCheckList.Items.Add(Directory, False)
+                If Not ExistingDirectories.Contains(Directory.ToLower()) Then
+                    If Directory.ToLower().Contains(Filter.ToLower()) Then
+                        Me.SystemPathCheckList.Items.Add(Directory, False)
+                    Else
+                        mHiddenList.Add(Directory)
+                    End If
                     ExistingDirectories.Add(Directory.ToLower())
                 End If
             Next Directory
@@ -100,7 +110,7 @@ Public Class MenuForm
     ''' </summary>
     Private Sub SaveState()
         If mLoaded Then
-            Dim EnabledDirectories As New List(Of String)
+            Dim EnabledDirectories As New List(Of String)(Me.mHiddenList)
             Dim DisabledDirectories As New List(Of String)
             For Index As Integer = 0 To Me.SystemPathCheckList.Items.Count - 1
                 If Me.SystemPathCheckList.GetItemChecked(Index) Then
